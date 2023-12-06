@@ -1,0 +1,23 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "Anika's ML Blogs"
+  description: "5 different blogs covering various ML topics."
+  navbar:
+    right:
+      - about.qmd
+      - text: Blog
+        href: blog.qmd
+      - icon: github
+        href: https://github.com/
+      - icon: twitter
+        href: https://twitter.com
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+
+
+

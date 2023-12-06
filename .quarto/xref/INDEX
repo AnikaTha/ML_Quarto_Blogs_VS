@@ -1,0 +1,23 @@
+{
+  "posts/regression/regression.qmd": {
+    "regression.html": "82fd7995"
+  },
+  "blog.qmd": {
+    "blog.html": "d90c6aa4"
+  },
+  "posts/post-with-code/index.qmd": {
+    "index.html": "05c15480"
+  },
+  "posts/welcome/index.qmd": {
+    "index.html": "2beb306e"
+  },
+  "index.qmd": {
+    "index.html": "b2c275fb"
+  },
+  "posts/classification/classification.qmd": {
+    "classification.html": "d5432903"
+  },
+  "posts/anomaly_detection/anomaly_detection.qmd": {
+    "anomaly_detection.html": "9408ea83"
+  }
+}

@@ -1,0 +1,10 @@
+[
+  {
+    "listing": "/blog.html",
+    "items": [
+      "/posts/anomaly_detection/anomaly_detection.html",
+      "/posts/classification/classification.html",
+      "/posts/regression/regression.html"
+    ]
+  }
+]

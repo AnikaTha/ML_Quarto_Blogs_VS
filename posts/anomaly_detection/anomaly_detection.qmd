@@ -1,0 +1,143 @@
+---
+title: Anomalous ECG Detection
+author: "Anika Thatavarthy"
+image: "ecg.jpg"
+date: "2023-12-06"
+categories: [code]
+jupyter: python3
+---
+Determining whether an ECG is irregular or not using reconstruction technique
+
+
+```{python}
+import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt
+import tensorflow as tf
+```
+
+```{python}
+df = pd.read_csv('./ecg.csv', header=None)
+raw_data = df.values
+df.head()
+```
+
+```{python}
+from sklearn.model_selection import train_test_split
+
+labels = raw_data[:, -1]
+data = raw_data[:, 0:-1]
+
+x_train, x_test, Y_train, Y_test = train_test_split(data, labels, test_size=0.2, random_state=42)
+```
+
+```{python}
+# scaling the data values
+min_val = tf.reduce_min(x_train)
+max_val = tf.reduce_max(x_train)
+x_train = (x_train - min_val) / (max_val - min_val)
+x_test = (x_test - min_val) / (max_val - min_val)
+x_train = tf.cast(x_train, tf.float32)
+x_test = tf.cast(x_test, tf.float32)
+```
+
+```{python}
+# formatting the labels
+Y_train = Y_train.astype(bool)
+Y_test = Y_test.astype(bool)
+
+# segregating the normal and irregular ECG observations
+normal_x_train = x_train[Y_train]
+irregular_x_train = x_train[~Y_train]
+
+normal_x_test = x_test[Y_test]
+irregular_x_test = x_test[~Y_test]
+```
+
+```{python}
+# plotting the normal and irregular ECG observations
+fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(15, 5))
+ax[0].plot(np.arange(140), normal_x_train[-1])
+ax[0].set_title('Normal ECG')
+ax[0].grid()
+ax[1].plot(np.arange(140), irregular_x_train[-1])
+ax[1].set_title('Irregular ECG')
+ax[1].grid()
+```
+
+```{python}
+from tensorflow.keras.models import Model
+
+class Autoencoder(Model):
+  def __init__(self):
+    super(Autoencoder, self).__init__()
+    self.encoder = tf.keras.Sequential([
+      tf.keras.layers.Dense(140, activation='relu'),
+      tf.keras.layers.Dense(32, activation='relu'),
+      tf.keras.layers.Dense(16, activation='relu'),
+      tf.keras.layers.Dense(8, activation='relu'),
+    ])
+    self.decoder = tf.keras.Sequential([
+      tf.keras.layers.Dense(16, activation='relu'),
+      tf.keras.layers.Dense(32, activation='relu'),
+      tf.keras.layers.Dense(140, activation='sigmoid'),
+    ])
+
+  def call(self, x):
+    encoded = self.encoder(x)
+    decoded = self.decoder(encoded)
+    return decoded
+```
+
+```{python}
+autoencoder = Autoencoder()
+```
+
+```{python}
+# compiling and training the model
+autoencoder.compile(optimizer='adam', loss='mae')
+autoencoder.fit(normal_x_train, normal_x_train, epochs = 20, batch_size=512, validation_data=(normal_x_test, normal_x_test))
+```
+
+```{python}
+import random
+def plot(data, n, title):
+  enc_img = autoencoder.encoder(data)
+  dec_img = autoencoder.decoder(enc_img)
+  plt.plot(data[n], 'b')
+  plt.title(title)
+  plt.xlabel("Time")
+  plt.ylabel("Amplitude")
+  plt.plot(dec_img[n], 'r')
+  plt.fill_between(np.arange(140), data[n], dec_img[n], color = 'lightcoral')
+  plt.legend(labels=['Input', 'Reconstruction', 'Error'])
+  plt.show()
+
+plot(normal_x_test, random.randint(0, len(normal_x_test)), "Normal ECG Reconstruction")
+plot(irregular_x_test, random.randint(0, len(irregular_x_test)), "Irregular ECG Reconstruction")
+```
+
+```{python}
+# calculating the training loss
+reconstructions = autoencoder.predict(normal_x_train)
+train_loss = tf.keras.losses.mean_squared_error(reconstructions, normal_x_train)
+```
+
+```{python}
+threshold = np.mean(train_loss) + np.std(train_loss)
+```
+
+```{python}
+reconstructed_test = autoencoder.predict(x_test)
+
+losses = tf.keras.losses.mean_squared_error(reconstructed_test, x_test)
+anomalies = tf.math.less(losses, threshold)
+```
+
+```{python}
+from sklearn.metrics import accuracy_score, precision_score, recall_score
+print(str.format('Accuracy: {:.2f}', accuracy_score(Y_test, anomalies)))
+print(str.format('Precision: {:.2f}', precision_score(Y_test, anomalies)))
+print(str.format('Recall: {:.2f}', recall_score(Y_test, anomalies)))
+```
+

@@ -1,0 +1,180 @@
+---
+title: Pokemon Type Classification
+author: "Anika Thatavarthy"
+date: "2023-12-06"
+image: "pokemon.jpg"
+categories: [code]
+jupyter: python3
+---
+
+Classifying Pokemon into their Type1 based on Attack and Defense Stats
+
+```{python}
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+import matplotlib.pyplot as plt
+import seaborn as sns
+import sklearn
+%matplotlib inline
+```
+
+## Importing Data
+
+- talk about the dataset
+Importing quantitative and categorical data separately. Only quantitative data will be used for classification
+
+```{python}
+df = pd.read_csv('./pokemon.csv')
+df2 = df.select_dtypes(include=['float64','int64'])
+df3 = df.select_dtypes(include=['object'])
+```
+
+```{python}
+df2.head()
+```
+
+```{python}
+df3.head()
+```
+
+## Data Preprocessing
+
+Encoding type1 labels
+
+```{python}
+from sklearn import preprocessing
+
+le = preprocessing.LabelEncoder()
+labels = le.fit_transform(df['type1'])
+print(len(le.classes_))
+print(le.classes_)
+```
+
+Encoding type2 labels
+
+```{python}
+type2_le = preprocessing.LabelEncoder()
+type2 = type2_le.fit_transform(df['type2'].astype(str))
+len(type2_le.classes_)
+```
+
+Fill missing data points with the mean of that column
+
+```{python}
+for i in df2:
+    if df[i].isnull().values.any():
+            df[i].fillna(df[i].mean(), inplace=True)
+```
+
+Make sure that there are no NaN values remaining
+
+```{python}
+df[list(df2)].isnull().values.any()
+```
+
+```{python}
+df.loc[:, df.columns.str.contains('against')].plot(kind="box", figsize=(20,10));
+plt.xticks(rotation=90);
+```
+
+Creating dataset for training, combining encoded labels with imputed attack and defense values from original dataset
+
+```{python}
+data = {
+    'attack': df['attack'],
+    'defense': df['defense'],
+    'sp_attack': df['sp_attack'],
+    'sp_defense': df['sp_defense'],
+    'type2': type2,
+    'type1': df['type1']
+}
+data = pd.DataFrame(data)
+data = df.filter(like='against').join(data)
+
+X = data.drop('type1', axis=1)
+y = data['type1']
+print(list(X))
+X.head()
+```
+
+## Decision Tree Classifier
+
+- what is a decision tree, how does it work, complications/shortcomings
+- equations
+- applications
+- talk about what I am doing in the next blocks
+- cross validation
+
+```{python}
+from sklearn import tree
+from sklearn.model_selection import cross_val_score, KFold
+kfold = KFold(n_splits=10, shuffle=True)
+
+clf = tree.DecisionTreeClassifier()
+clf = clf.fit(X,y)
+
+result = cross_val_score(clf, X, y, cv=kfold, scoring='accuracy')
+
+print(result.mean())
+```
+
+Visualizing the Tree
+
+```{python}
+# plotting decision tree with dilineating features -> FIX LATER
+import matplotlib.pyplot as plt
+plt.figure(figsize=(60,36))
+tree_plot = sklearn.tree.plot_tree(clf, filled=True, rounded=True, class_names=list(y.unique()), feature_names=list(X.columns))
+```
+
+## Logistic Regression Classifier
+
+```{python}
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=48)
+log_reg = LogisticRegression(max_iter=1000)
+log_reg.fit(X_train, y_train)
+accuracy_score(y_test, log_reg.predict(X_test))
+```
+
+```{python}
+num_components = []
+accuracies = []
+from sklearn.decomposition import PCA
+for n in range(2,21):
+    pca = PCA(n_components=n)
+    principalComponents = pca.fit_transform(X)
+    X_train, X_test, y_train, y_test = train_test_split(principalComponents, y, test_size=0.25, random_state=48)
+    log_reg = LogisticRegression(max_iter=1000)
+    log_reg.fit(X_train, y_train)
+    accuracy = accuracy_score(y_test, log_reg.predict(X_test))
+    print( str(n) + " Principal components produce an accuracy of: " + str(accuracy))
+    num_components.append(n)
+    accuracies.append(accuracy*100)
+```
+
+```{python}
+plt.figure(figsize=(10,7))
+plt.plot(num_components, accuracies)
+plt.title("Number of Components vs. Accuracy")
+plt.xlabel("# Components")
+plt.ylabel("% Accuracy")
+```
+
+Visualizing the classifier's accuracy using a confusion matrix
+
+```{python}
+from sklearn.metrics import confusion_matrix
+y_pred = log_reg.predict(X_test)
+cm = confusion_matrix(y_test, y_pred)
+cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+cm = pd.DataFrame(cm, index=le.classes_, columns=le.classes_)
+plt.subplots(figsize=(20,15));
+sns.heatmap(cm, annot=True);
+```
+

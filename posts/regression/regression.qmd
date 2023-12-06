@@ -1,0 +1,252 @@
+---
+title: Salary prediction via Linear Regression
+author: "Anika Thatavarthy"
+image: "salary.jpg"
+date: "2023-12-06"
+categories: [code]
+jupyter: python3
+---
+
+Can Salary be accurately predicted using metrics such as age and years of experience, gender and education level?
+
+```{python}
+import numpy as np
+import pandas as pd 
+import seaborn as sns
+from matplotlib import pyplot as plt
+```
+
+## Importing data
+
+```{python}
+dataset = pd.read_csv("salary_data.csv")
+df=dataset.copy()
+df
+```
+
+```{python}
+label="Salary"
+df.describe()
+```
+
+```{python}
+for col in df.select_dtypes("float"or"int"):
+    print(col)
+    print(f'\taverage with NaN: {df[col].mean()}')
+    print(f'\taverage without NaN: {df[col].mean(skipna=True)}')
+```
+
+```{python}
+for col in df.select_dtypes("object"):
+    print(col)
+    print(f'\tmost common value with NaN: {df[col].mode()[0]} and without NaN: {df[col].value_counts().idxmax()}')
+```
+
+## Data Preprocessing
+
+### Replacing quantitive feature NaN with average, categorical NaN with most common value
+
+Printing the whether the number of rows with NaN is 0 to make sure values were imputed properly
+
+```{python}
+for col in df.columns : 
+    if col in df.select_dtypes(include=['object']).columns:
+        df[col]=df[col].fillna(df[col].dropna().mode()[0])
+        print(col,df[col].isna().sum() == 0)
+        
+    else :
+        df[col]=df[col].fillna(df[col].mean(skipna=True))
+        print(col,df[col].isna().sum() == 0)
+```
+
+Calculating value counts of each column
+
+```{python}
+for col in df.select_dtypes('object'):
+    print(col,'-------->')
+    print(df[col].value_counts().reset_index())
+    print()
+    print()
+```
+
+Converting value counts to frequencies
+
+```{python}
+for col in df.select_dtypes(include=['object']).columns:
+    frequency_table = df[col].value_counts().reset_index()
+    frequency_table.columns = [col, 'Count']
+    frequency_table['Frequency (%)'] = (frequency_table['Count'] / len(df)) * 100
+    print("Counts per", col)
+    print(frequency_table)
+    print()
+```
+
+```{python}
+df_summary=df.describe()
+df_summary
+```
+
+Plotting distribution of each quantitative feature (histogram and boxplot)
+
+```{python}
+for col in df.select_dtypes(include=["float",'int']).columns:
+    plt.hist(df[col], bins=10)
+    plt.xlabel(col)
+    plt.ylabel("Frequency")
+    plt.title("Distribution of " + col)
+    plt.show()
+    plt.boxplot(df[col])
+    plt.ylabel(col)
+    plt.title("Box Plot of " + col)
+    plt.show()
+```
+
+Plotting distribution of categorical features (bar chart)
+
+```{python}
+for col in df.select_dtypes("object").columns:
+    value_counts=df[col].value_counts()
+    if col == "Job Title": plt.figure(figsize=(20,20))
+    else: plt.figure(figsize=(10,10))
+    value_counts.plot.bar()
+    plt.xlabel("Category")
+    plt.ylabel("Frequency")
+    plt.title("Bar chart of " + col)
+    plt.show()
+```
+
+Identifying potential outliers by calculating 1.5\*Interquartile range
+
+```{python}
+for col in df.select_dtypes('float').columns:
+    q1=np.percentile(df[col],25)
+    q3=np.percentile(df[col],75)
+    iqr=q3-q1
+    inf=q1-(1.5)*iqr
+    sup=q3+(1.5)*iqr
+    outliers = df[(df[col] < inf) | (df[col] > sup)]
+    print(col,"Outliers:", outliers)
+```
+
+Printing the mean per unique value in each feature
+
+```{python}
+for num_var in df.select_dtypes("float"):
+    for cat_var in df.select_dtypes("object"):
+        mean_per_category = df.groupby(cat_var)[num_var].mean()
+        print(f'Mean of {num_var} per {cat_var}: {mean_per_category}\n')
+```
+
+Mapping categorical values to numerical values (Gender to 0/1, Education to numbers 1-3)
+
+```{python}
+df_standarized=df
+```
+
+```{python}
+dic_gender={"Male":0,"Female":1}
+df_standarized['Gender']=df_standarized['Gender'].map(dic_gender)
+```
+
+```{python}
+dic_job={"Bachelor's":1,"Master's":2,"PhD":3}
+df_standarized['Education Level']=df_standarized['Education Level'].map(dic_job)
+```
+
+Looking at trends in features across each categorical values
+
+```{python}
+sns.pairplot(df_standarized,hue="Education Level");
+plt.title("Feature Trends Across Education Level");
+plt.show();
+```
+
+```{python}
+sns.pairplot(df_standarized,hue="Gender");
+plt.title("Feature Trends Across Genders");
+plt.show();
+```
+
+```{python}
+df_standarized_final=df_standarized.drop("Job Title",axis=1)
+```
+
+### Splitting data into labels and features
+
+```{python}
+def pre_processing(df):
+    X=df.drop('Salary',axis=1)
+    Y=df['Salary']
+    return X,Y
+```
+
+```{python}
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.svm import SVR
+from sklearn.model_selection import cross_val_score
+from sklearn.metrics import mean_squared_error
+from sklearn import metrics
+```
+
+```{python}
+train_set,test_set=train_test_split(df_standarized_final,test_size=0.25, random_state=0)
+train_set.shape
+```
+
+```{python}
+X_train, y_train = pre_processing(train_set)
+X_test, y_test = pre_processing(test_set)
+```
+
+## Linear Regression Model
+
+```{python}
+def evalution(model):
+    model.fit(X_train , y_train)
+    Ypred=model.predict(X_test)
+    plt.figure(figsize=(15,15))
+    plt.xlim(0, 210000)
+    plt.ylim(0, 210000)
+    plt.xlabel("Actual")
+    plt.ylabel("Predicted")
+    plt.title("Predicted Salary vs. Actual Salary")
+    plt.scatter(y_test,Ypred,s=200)
+    plt.plot(np.unique(y_test), np.poly1d(np.polyfit(y_test, Ypred, 1))(np.unique(y_test)), color='red')
+    plt.legend()
+    
+```
+
+```{python}
+model=LinearRegression()
+evalution(model)
+```
+
+```{python}
+model.coef_, model.intercept_
+```
+
+```{python}
+test_x=X_test
+pred=model.predict(X_test)
+print("R^2:",metrics.r2_score(y_test, pred))
+print("MAE:",metrics.mean_absolute_error(y_test, pred))
+print("MSE:",metrics.mean_squared_error(y_test, pred))
+print("RMSE:",np.sqrt(metrics.mean_squared_error(y_test, pred)))
+```
+
+### Support Vector Regression Model
+
+```{python}
+model=SVR(kernel="linear")
+evalution(model)
+```
+
+```{python}
+test_x=X_test
+pred=model.predict(X_test)
+print("R^2:",metrics.r2_score(y_test, pred))
+print("MAE:",metrics.mean_absolute_error(y_test, pred))
+print("MSE:",metrics.mean_squared_error(y_test, pred))
+print("RMSE:",np.sqrt(metrics.mean_squared_error(y_test, pred)))
+```
