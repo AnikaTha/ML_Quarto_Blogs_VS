@@ -1,5 +1,5 @@
 ---
-title: "About"
+title: "Anika's ML Blogs"
 image: profile.jpg
 about:
   template: jolla

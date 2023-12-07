@@ -1,13 +1,14 @@
 ---
 title: Anomalous ECG Detection
 author: "Anika Thatavarthy"
+description: "Determining whether an ECG is irregular or not using reconstruction via Autoencoders"
 image: "ecg.jpg"
 date: "2023-12-06"
 categories: [code]
 jupyter: python3
 ---
-Determining whether an ECG is irregular or not using reconstruction technique
 
+### Determining whether an ECG is irregular or not using reconstruction via Autoencoders
 
 ```{python}
 import numpy as np
@@ -15,6 +16,8 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import tensorflow as tf
 ```
+
+Does this show up
 
 ```{python}
 df = pd.read_csv('./ecg.csv', header=None)

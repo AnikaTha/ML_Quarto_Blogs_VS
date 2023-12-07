@@ -7,16 +7,15 @@ website:
   description: "5 different blogs covering various ML topics."
   navbar:
     right:
-      - about.qmd
       - text: Blog
         href: blog.qmd
       - icon: github
         href: https://github.com/
-      - icon: twitter
-        href: https://twitter.com
+      - icon: linkedin
+        href: https://www.linkedin.com/in/anika-thatavarthy/
 format:
   html:
-    theme: cosmo
+    theme: minty
     css: styles.css
 
 

@@ -19,5 +19,8 @@
   },
   "posts/anomaly_detection/anomaly_detection.qmd": {
     "anomaly_detection.html": "9408ea83"
+  },
+  "posts/clustering/clustering.ipynb": {
+    "clustering.html": "8bff384b"
   }
 }
