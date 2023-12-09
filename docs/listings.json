@@ -2,9 +2,10 @@
   {
     "listing": "/blog.html",
     "items": [
-      "/posts/clustering/clustering.html",
       "/posts/anomaly_detection/anomaly_detection.html",
       "/posts/classification/classification.html",
+      "/posts/clustering/clustering.html",
+      "/posts/probability/probability.html",
       "/posts/regression/regression.html"
     ]
   }
